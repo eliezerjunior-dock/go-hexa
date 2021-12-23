@@ -1,0 +1,15 @@
+# docker network create --driver bridge go_hexa_net
+# docker build -t go_balance_grpc . -f dockerfile-balance-gprc
+# docker run -dit --network go_hexa_net --name go_balance_grpc -p 50051:50051 go_balance_grpc
+
+FROM golang:1.17 As builder
+WORKDIR /app
+
+COPY . .
+WORKDIR /app/go-balance/cmd/grpc
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-w' -o go_balance_grpc
+
+FROM scratch
+WORKDIR /app
+COPY --from=builder /app/go-balance/cmd/grpc/go_balance_grpc .
+CMD ["/app/go_balance_grpc"]

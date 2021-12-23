@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-go-balance-http
+  namespace: test-g
+spec:
+  ports:
+  - name: svc-go-balance-http
+    port: 8901
+    targetPort: 8901
+  selector:
+    app: go-balance-http
+  type: LoadBalancer

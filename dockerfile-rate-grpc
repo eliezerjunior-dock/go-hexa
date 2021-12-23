@@ -1,0 +1,15 @@
+# docker network create --driver bridge go_hexa_net
+# docker build -t go_rate_grpc . -f dockerfile-rate-grpc
+# docker run -dit --network go_hexa_net --name go_rate_grpc -p 60051:60051 go_rate_grpc
+
+FROM golang:1.17 As builder
+WORKDIR /app
+
+COPY . .
+WORKDIR /app/go-rate
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-w' -o go_rate_grpc
+
+FROM scratch
+WORKDIR /app
+COPY --from=builder /app/go-rate/go_rate_grpc .
+CMD ["/app/go_rate_grpc"]

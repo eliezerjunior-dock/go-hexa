@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package balance;
+option go_package="github.com/go-hexa/proto-shared/generated/go/balance";
+
+message Balance {
+    string accept_language  = 1;
+    string locale           = 2;
+    string id               = 3;
+    string account          = 4;
+    int32  amount           = 5;
+    google.protobuf.Timestamp date_balance = 6;
+    string description      = 7;
+}
+
+message Setup {
+    string  name            = 1;
+    string  pid             = 2;
+    string  ip_adress       = 3;
+    string  host            = 4;
+    string  port            = 5;
+    string  error_code      = 6;
+    int32   response_time   = 7;  
+    bool    is_randon_time  = 8;  
+}
+
+message SetupRequest {
+    Setup setup = 1;
+}
+
+message SetupResponse {
+    Setup setup = 1;
+}
+
+message HealthRequest {
+}
+
+message HealthResponse {
+    Setup health = 1;
+}
+
+message StressRequest {
+    int32 count = 1;
+}
+
+message StressResponse {
+    bool result = 1;
+}
+
+message ListBalanceRequest {
+}
+
+message ListBalanceResponse {
+    repeated Balance balance = 1;
+    int32 total              = 2;
+}
+
+message GetBalanceRequest {
+    string  id            = 1;
+}
+
+message GetBalanceResponse {
+    Balance balance = 1;
+}
+
+message AddBalanceRequest {
+    Balance balance = 1;
+}
+
+message AddBalanceResponse {
+    bool result = 1;
+}
+
+service BalanceService {
+
+    // Api Health
+    //rpc Stress(StressRequest) returns (StressResponse) {};
+
+    // Api Setup
+  //  rpc Setup(SetupRequest) returns (SetupResponse) {};
+
+    //Api Unary
+    rpc ListBalance(ListBalanceRequest) returns (ListBalanceResponse) {};
+
+    //Api Unary
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse) {};
+
+    //Api Unary
+    rpc AddBalance(AddBalanceRequest) returns (AddBalanceResponse) {};
+}

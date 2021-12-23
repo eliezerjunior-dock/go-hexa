@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-balance-http
+  namespace: test-g
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: go-balance-http
+  template:
+    metadata:
+      labels:
+        app: go-balance-http
+        version: "go-balance-http"
+    spec:
+      containers:
+      - name: go-balance-http
+        imagePullPolicy: Never
+        image: go_balance_http
+        resources:
+           requests:
+             cpu: 250m
+             memory: 100Mi
+           limits:
+             cpu: 500m
+             memory: 150Mi
+        ports:
+        - containerPort: 8901
+        env:
+        - name: PORT
+          value: "8901"
+        - name: NAME_POD
+          value: "pod-go-balance-http"
+      terminationGracePeriodSeconds: 60

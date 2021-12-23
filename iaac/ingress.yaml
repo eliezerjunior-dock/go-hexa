@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ing-go-grpc-balance
+  namespace: test-g
+spec:
+  rules:
+    - host: grpcbalance.app
+      http:
+        paths: 
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+                name: svc-go-grpc-balance
+                port:
+                    number: 50051

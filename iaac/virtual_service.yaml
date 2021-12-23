@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: virtual-go-grpc-balance
+  namespace: test-g
+spec:
+  hosts:
+  - "httpbalance.app"
+  gateways:
+  - gateway-balance
+  http:
+  - match:
+    - uri:
+        exact: /
+    - uri:
+        exact: /list_account_fake
+    route:
+    - destination:
+        host: svc-go-http-account
+        port:
+          number: 8010

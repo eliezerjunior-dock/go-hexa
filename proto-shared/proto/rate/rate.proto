@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package rate;
+option go_package="github.com/go-hexa/proto-shared/generated/go/rate";
+
+message Rate {
+    int32  rate           = 1;
+    string description    = 2;
+}
+
+message RateRequest {
+    string account = 1;
+}
+
+message RateResponse {
+    Rate rate = 1;
+}
+
+service RateService {
+    // Api Unary
+    rpc GetRateAccount(RateRequest) returns (RateResponse) {};
+}

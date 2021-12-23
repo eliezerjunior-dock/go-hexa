@@ -1,0 +1,15 @@
+# docker network create --driver bridge go_hexa_net
+# docker build -t go_balance_http . -f dockerfile-balance-http
+# docker run -dit --network go_hexa_net --name go_balance_http -p 8900:8900 go_balance_http
+
+FROM golang:1.17 As builder
+WORKDIR /app
+
+COPY . .
+WORKDIR /app/go-balance/cmd/http
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-w' -o go_balance_http
+
+FROM scratch
+WORKDIR /app
+COPY --from=builder /app/go-balance/cmd/http/go_balance_http .
+CMD ["/app/go_balance_http"]
