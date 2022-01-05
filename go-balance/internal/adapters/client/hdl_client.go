@@ -14,6 +14,11 @@ import(
 	"google.golang.org/grpc/codes"
 )
 
+const val_timeout = 3
+const host =  "svc-go-rate-grpc:60051" 
+//const host =  "go_rate_grpc:60051" //uso  docker
+//const host = "0.0.0.0:60051" //uso local 
+
 type GrpcAdapterClient struct {
 	cliente core.BalanceClientPort
 }
@@ -29,21 +34,21 @@ func (g *GrpcAdapterClient) GetRate(account string) (int32, error) {
 	log.Printf("- GetRate Calling another Service !!!!")
 	log.Printf("--------------------------------------")
 
-	var host = "svc-go-rate-grpc:60051" 
-	//var host = "0.0.0.0:60051" // local
-
 	var opts []grpc.DialOption
 	opts = append(opts,grpc.FailOnNonTempDialError(true))
 	opts = append(opts, grpc.WithInsecure())
     opts = append(opts, grpc.WithBlock())
 
 	cc, err := grpc.Dial(host, opts...)
-
 	if err != nil{
 		log.Printf("Failed to connect : %v", err)
 		return 1, err
 	}
-	defer cc.Close()
+	defer func() {
+		if err := cc.Close(); err != nil {
+			log.Printf("Failed to close gPRC connection: %s", err)
+		}
+	}()
 
 	c := proto.NewRateServiceClient(cc)
 
@@ -51,7 +56,7 @@ func (g *GrpcAdapterClient) GetRate(account string) (int32, error) {
 		Account: account,
 	}
 
-	timeout := 3 * time.Second
+	timeout := val_timeout * time.Second
 	header := metadata.New(map[string]string{"accept_language": "pt-BR", "jwt":"cookie"})
 	ctx, cancel := context.WithTimeout(context.Background(), timeout) 
 	ctx = metadata.NewOutgoingContext(ctx, header)

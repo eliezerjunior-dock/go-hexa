@@ -30,15 +30,15 @@ func main() {
 	done := make(chan string)
 
 	log.Println("-----------------------------")
-	log.Println("Goroutine - Load data")
+	log.Println("Goroutine - POST data")
 	go post(host, client, done)
-	log.Println("End Load data")
+	log.Println("End POST data")
 	log.Println("-----------------------------")
 
 	log.Println("-----------------------------")
-	log.Println("Goroutine - Reading Data")
+	log.Println("Goroutine - GET Data")
 	go get(host, client, done)
-	log.Println("End Reading Data")
+	log.Println("End GET Data")
 	log.Println("-----------------------------")
 
 	log.Println(<-done)
@@ -75,19 +75,17 @@ func get_data(host_url string, client http.Client){
 
 	req_get.Header = http.Header{
 		"Accept_Language": []string{"pt-BR"},
-		"Authorization": []string{"Bearer cookie"},
+		"jwt": []string{"cookie"},
 	}
 
 	req_get.Close = true
 	resp, err := client.Do(req_get)
-	//defer resp.Body.Close()
 	if err != nil {
 		log.Println("Error doing GET : ", err)
 		panic(err)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
-
 	if err != nil {
 		log.Println("Error : ", err)
 		panic(err)
@@ -96,7 +94,13 @@ func get_data(host_url string, client http.Client){
 	sb := string(body)
 	log.Printf(sb)
 
-	resp.Body.Close();
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Println("Erro Close :",err)
+		}
+	}()
+
 	log.Println("###########")
 }
 
@@ -115,7 +119,7 @@ func post_data(i int ,host string, client http.Client){
 
 	req_post.Header = http.Header{
 		"Accept_Language": []string{"pt-BR"},
-		"Authorization": []string{"Bearer cookie"},
+		"jwt": []string{"cookie"},
 		"Content-Type": []string{"application/json"},
 	}
 
@@ -125,6 +129,13 @@ func post_data(i int ,host string, client http.Client){
 	   panic(err)
 	}
 
-	resp.Body.Close();
-}
+	log.Println("StatusCode : ", resp.StatusCode )
+	
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Println("Erro Close :",err)
+		}
+	}()
 
+}

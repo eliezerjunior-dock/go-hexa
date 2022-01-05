@@ -16,9 +16,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/go-hexa/go-balance/dummy_data"
 	"github.com/go-hexa/go-balance/internal/handlers/hdl_grpc"
+	"github.com/go-hexa/go-balance/internal/healthcheck"
 	"github.com/go-hexa/go-balance/internal/core"
 	proto "github.com/go-hexa/proto-shared/generated/go/balance"
 	"github.com/go-hexa/go-balance/internal/adapters/repository"
@@ -27,6 +29,8 @@ import (
 
 var my_pod core.Pod
 var my_setup core.Setup 
+
+const maxConnectionAge = 1
 
 func getEnvVariable(key string) string {
 	err := godotenv.Load(".env")
@@ -117,10 +121,13 @@ func main() {
 
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.UnaryInterceptor(authInterceptor))
- 	opts = append(opts, grpc.KeepaliveParams(keepalive.ServerParameters{MaxConnectionAge: time.Minute * 1}))
+ 	opts = append(opts, grpc.KeepaliveParams(keepalive.ServerParameters{MaxConnectionAge: time.Minute * maxConnectionAge})) // L4 proxies are configured to kill "idle" connections. Sending pings would make the connections not "idle"
 
 	s := grpc.NewServer(opts...)
 	proto.RegisterBalanceServiceServer(s, handler)
+
+	healthService := healthcheck.NewHealthChecker()
+	grpc_health_v1.RegisterHealthServer(s, healthService)
 
 	go func(){
 		log.Println("Start Server...")

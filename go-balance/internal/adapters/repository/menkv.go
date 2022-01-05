@@ -3,10 +3,13 @@ package repository
 import (
 	"log"
 	"encoding/json"
+	"sync"
 
 	"github.com/go-hexa/go-balance/pkg"
 	"github.com/go-hexa/go-balance/internal/core"
 )
+
+var mutex sync.Mutex
 
 type memkv struct {
 	kv map[string][]byte
@@ -61,6 +64,9 @@ func (repo *memkv) AddBalance(balance core.Balance) error {
 	log.Printf("####################################")
 	log.Printf("- DataBase - AddBalance Data !!!!")
 	log.Printf("####################################")
+	
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	bytes, err := json.Marshal(balance)
 	if err != nil {

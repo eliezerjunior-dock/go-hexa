@@ -29,9 +29,18 @@ spec:
              memory: 200Mi
         ports:
         - containerPort: 50051
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:50051", "-rpc-header=jwt:cookie"]
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:50051", "-rpc-header=jwt:cookie"]
+          initialDelaySeconds: 10
+          periodSeconds: 10
         env:
         - name: PORT
           value: "50051"
         - name: NAME_POD
-          value: "pod-go-balance-grpc"
+          value: "pod-go-balance-grpc-08"
       terminationGracePeriodSeconds: 60

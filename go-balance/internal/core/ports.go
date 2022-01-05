@@ -14,4 +14,4 @@ type BalanceRepositoryPort interface {
 
 type BalanceClientPort interface {
  	GetRate(account string) (int32 ,error)
-}
+ }

@@ -12,65 +12,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/backoff"
+	//"google.golang.org/grpc/backoff"
 
 	"github.com/go-hexa/go-balance/pkg"
 	"github.com/go-hexa/go-balance/dummy_data"
 	proto "github.com/go-hexa/proto-shared/generated/go/balance"
 )
-
-func main(){
-	fmt.Println("Balance gRPC client")
-
-	port := flag.String("port","","")
-	flag.Parse()
-	flag.VisitAll(func (f *flag.Flag) {
-		if f.Value.String()=="" {
-			fmt.Printf("A flag -%v não foi informado \n", f.Name )
-			os.Exit(1)
-		}
-	})
-
-	var host = "0.0.0.0:" + *port
-	
-	var DefaultConfig =backoff. Config{
-		BaseDelay:  1.0 * time.Second,
-		Multiplier: 1.6,
-		MaxDelay:   120 * time.Second,
-	}
-
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.FailOnNonTempDialError(true))
-	opts = append(opts, grpc.WithInsecure())
-    opts = append(opts, grpc.WithBlock())
-	opts = append(opts, grpc.WithConnectParams(grpc.ConnectParams{
-    											Backoff: DefaultConfig, })) 
-
-	cc, err := grpc.Dial(host, opts...)
-	if err != nil{
-		log.Printf(" **** Failed to connect %v", err)
-		panic(err)
-	}
-	defer cc.Close()
-
-	c := proto.NewBalanceServiceClient(cc)
-
-	done := make(chan string)
-	
-	log.Println("-----------------------------")
-	log.Println("Goroutine - Post Data")
-	go post(c, done)
-	log.Println("End Post Data")
-	log.Println("-----------------------------")
-
-	log.Println("-----------------------------")
-	log.Println("Goroutine - Get Data")
-	go get(c, done)
-	log.Println("End Reading Data")
-	log.Println("-----------------------------")
-
-	log.Println(<-done)
-}
 
 func get(c proto.BalanceServiceClient, done chan string){
 	for i:=0; i < 3600; i++ {
@@ -87,7 +34,7 @@ func post(c proto.BalanceServiceClient, done chan string){
 			req := &proto.AddBalanceRequest {
 				Balance: &b,
 			}
-			AddBalance(c , req , 3 * time.Second)
+			AddBalance(c , req , 5 * time.Second)
 		}
 		time.Sleep(time.Millisecond * time.Duration(1000))
 	}
@@ -165,6 +112,7 @@ func ListBalance(c proto.BalanceServiceClient, timeout time.Duration){
 
 func AddBalance(c proto.BalanceServiceClient, req *proto.AddBalanceRequest, timeout time.Duration){
 	fmt.Println("#### AddBalance")
+	
 	header := metadata.New(map[string]string{"accept_language": "pt-BR", "jwt":"cookie"})
 	ctx, cancel := context.WithTimeout(context.Background(), timeout) 
 	ctx = metadata.NewOutgoingContext(ctx, header)
@@ -186,4 +134,68 @@ func AddBalance(c proto.BalanceServiceClient, req *proto.AddBalanceRequest, time
 		fmt.Println(res)
 		//fmt.Printf("Timestamppb.AsTime() : %s\n", res.Balance.DateBalance.AsTime().String())
 	}
+}
+
+func main(){
+	fmt.Println("Balance gRPC client")
+
+	port := flag.String("port","","")
+	flag.Parse()
+	flag.VisitAll(func (f *flag.Flag) {
+		if f.Value.String()=="" {
+			fmt.Printf("A flag -%v não foi informado \n", f.Name )
+			os.Exit(1)
+		}
+	})
+
+	var host = "127.0.0.1:" + *port
+	
+	// var DefaultConfig = backoff.Config{
+	// 	BaseDelay:  1.0 * time.Second,
+	// 	Multiplier: 2.0,
+	// 	Jitter:     0.2,
+	// 	MaxDelay:   120 * time.Second,
+	// }
+
+	// var opts2 := []grpc_retry.CallOption{
+	// 	grpc_retry.WithBackoff(grpc_retry.BackoffLinear(100 * time.Millisecond)),
+	// 	grpc_retry.WithCodes(codes.NotFound, codes.Aborted),
+	// }
+
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.FailOnNonTempDialError(true)) // Wait for ready
+	opts = append(opts, grpc.WithBlock()) // Wait for ready
+	opts = append(opts, grpc.WithInsecure()) // no TLS
+
+	// opts = append(opts, grpc.WithConnectParams(grpc.ConnectParams{
+    //  											Backoff: DefaultConfig, })) 
+
+	cc, err := grpc.Dial(host, opts...)
+	if err != nil{
+		log.Printf(" **** Failed to connect %v", err)
+		panic(err)
+	}
+	defer func() {
+		if err := cc.Close(); err != nil {
+			log.Printf("Failed to close gPRC connection: %s", err)
+		}
+	}()
+
+	c := proto.NewBalanceServiceClient(cc)
+
+	done := make(chan string)
+	
+	log.Println("-----------------------------")
+	log.Println("Goroutine - Post Data")
+	go post(c, done)
+	log.Println("End Post Data")
+	log.Println("-----------------------------")
+
+	log.Println("-----------------------------")
+	log.Println("Goroutine - Get Data")
+	//go get(c, done)
+	log.Println("End Reading Data")
+	log.Println("-----------------------------")
+
+	log.Println(<-done)
 }

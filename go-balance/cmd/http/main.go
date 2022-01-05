@@ -25,6 +25,11 @@ import (
 var my_pod core.Pod
 var my_setup core.Setup 
 
+const readTimeout = 60
+const writeTimeout = 60
+const idleTimeout = 60
+const ctxTimeout = 60
+
 func envVariable(key string) string {
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -66,6 +71,59 @@ func initSetup(){
 	my_pod.Setup = my_setup
 }
 
+func handleRequests(handler *hdl_http.HttpAdapter) {
+	myRouter := mux.NewRouter().StrictSlash(true)
+
+	myRouter.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(rw).Encode(my_pod)
+	})
+
+	add_balance := myRouter.Methods(http.MethodPost).Subrouter()
+    add_balance.HandleFunc("/add_balance", handler.AddBalance)
+	add_balance.Use(hdl_http.MiddleWareHandler)
+
+	list_balance := myRouter.Methods(http.MethodGet).Subrouter()
+    list_balance.HandleFunc("/list_balance", handler.ListBalance)
+	list_balance.Use(hdl_http.MiddleWareHandler)
+
+	get_balance := myRouter.Methods(http.MethodGet).Subrouter()
+    get_balance.HandleFunc("/get_balance", handler.GetBalance).Queries("id", "{id}")
+	get_balance.Use(hdl_http.MiddleWareHandler)
+
+	s := http.Server{
+		Addr:         ":" + my_pod.Port,      	
+		Handler:      myRouter,                	          
+		ReadTimeout:  time.Duration(readTimeout) * time.Second,   
+		WriteTimeout: time.Duration(writeTimeout) * time.Second,  
+		IdleTimeout:  time.Duration(idleTimeout) * time.Second, 
+	}
+
+	go func() {
+		log.Printf("Server Running -> name: %v | pid: %v | ip: %v | port: %v) \n", my_pod.Name , my_pod.PID ,my_pod.Ip, my_pod.Port)
+		err := s.ListenAndServe()
+		if err != nil {
+			log.Printf("Failed to connect server : %s\n", err)
+		}
+	}()
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	<-ch
+
+	log.Println("-> Stopping initialized")
+
+	ctx , cancel := context.WithTimeout(context.Background(), time.Duration(ctxTimeout) * time.Second)
+	defer cancel()
+
+	log.Println("--> Stopping gRPC server")
+	if err := s.Shutdown(ctx); err != nil && err != http.ErrServerClosed {
+		log.Println("WARNING Dirty Shutdown : %s \n", err)
+		return
+	}
+	log.Println("---> Stop DONE !!!")
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Printf("Starting Http Server 1.0")
@@ -86,56 +144,4 @@ func main() {
 	//------------------------------------
 	
 	handleRequests(handler)
-}
-
-func handleRequests(handler *hdl_http.HttpAdapter) {
-	myRouter := mux.NewRouter().StrictSlash(true)
-
-	myRouter.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(rw).Encode(my_pod)
-	})
-
-	add_balance := myRouter.Methods(http.MethodPost).Subrouter()
-    add_balance.HandleFunc("/add_balance", handler.AddBalance)
-
-	list_balance := myRouter.Methods(http.MethodGet).Subrouter()
-    list_balance.HandleFunc("/list_balance", handler.ListBalance)
-
-	get_balance := myRouter.Methods(http.MethodGet).Subrouter()
-    get_balance.HandleFunc("/get_balance", handler.GetBalance).Queries("id", "{id}")
-
-	//list_balance.Use(MiddleWareHandler)
-
-	s := http.Server{
-		Addr:         ":" + my_pod.Port,      	
-		Handler:      myRouter,                	          
-		ReadTimeout:  time.Duration(60) * time.Second,   
-		WriteTimeout: time.Duration(60) * time.Second,  
-		IdleTimeout:  time.Duration(60) * time.Second, 
-	}
-
-	go func() {
-		log.Printf("Server Running -> name: %v | pid: %v | ip: %v | port: %v) \n", my_pod.Name , my_pod.PID ,my_pod.Ip, my_pod.Port)
-		err := s.ListenAndServe()
-		if err != nil {
-			log.Printf("Failed to connect server : %s\n", err)
-		}
-	}()
-
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	<-ch
-
-	log.Println("-> Stopping initialized")
-
-	ctx , cancel := context.WithTimeout(context.Background(), time.Duration(60) * time.Second)
-	defer cancel()
-
-	log.Println("--> Stopping gRPC server")
-	if err := s.Shutdown(ctx); err != nil && err != http.ErrServerClosed {
-		log.Println("WARNING Dirty Shutdown : %s \n", err)
-		return
-	}
-	log.Println("---> Stop DONE !!!")
 }
